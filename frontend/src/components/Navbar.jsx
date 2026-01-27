@@ -6,7 +6,7 @@ import './Navbar.css';
 
 const Navbar = () => {
     return (
-        <nav className="navbar1">
+        <nav className="navbar">
             <div className="container navbar-container">
                 <Link to="/" className="navbar-brand">
                     <Briefcase size={24} className="text-primary" />
