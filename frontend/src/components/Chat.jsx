@@ -51,25 +51,26 @@ const Chat = ({ currentUserId, targetUser, jobId, onClose }) => {
     };
 
     return (
-        <div className="fixed bottom-4 right-4 w-80 bg-white border border-gray-200 rounded-lg shadow-2xl flex flex-col z-50 overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed top-0 right-0 h-screen w-80 sm:w-96 bg-white border-l border-gray-200 shadow-2xl flex flex-col z-50 overflow-hidden animate-in slide-in-from-right duration-300">
             {/* Header */}
-            <div className="bg-primary p-3 text-white flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-xs">
-                        {targetUser.name.charAt(0)}
+            <div className="bg-white p-4 border-b border-gray-100 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-700 shadow-sm relative">
+                        {targetUser.name.charAt(0).toUpperCase()}
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                     </div>
                     <div>
-                        <p className="text-sm font-bold leading-tight">{targetUser.name}</p>
-                        <p className="text-[10px] opacity-80">Online</p>
+                        <p className="font-bold text-gray-800 leading-tight">{targetUser.name}</p>
+                        <p className="text-xs text-green-600 font-medium">Online</p>
                     </div>
                 </div>
-                <button onClick={onClose} className="hover:bg-white/10 p-1 rounded transition-colors">
-                    <X size={18} />
+                <button onClick={onClose} className="text-gray-400 hover:bg-gray-100 hover:text-gray-600 p-2 rounded-full transition-colors">
+                    <X size={20} />
                 </button>
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 h-80 overflow-y-auto p-4 space-y-4 bg-gray-50">
+            <div className="flex-1 overflow-y-auto p-4 bg-gray-50 flex flex-col">
                 {loading ? (
                     <div className="flex justify-center items-center h-full">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
@@ -83,17 +84,28 @@ const Chat = ({ currentUserId, targetUser, jobId, onClose }) => {
                     messages.map((msg) => (
                         <div
                             key={msg.id}
-                            className={`flex ${msg.sender.id === currentUserId ? 'justify-end' : 'justify-start'}`}
+                            className={`flex gap-3 mb-4 ${msg.sender.id === currentUserId ? 'flex-row-reverse' : 'flex-row'}`}
                         >
-                            <div className={`max-w-[80%] p-3 rounded-2xl text-sm shadow-sm ${msg.sender.id === currentUserId
-                                    ? 'bg-primary text-white rounded-tr-none'
-                                    : 'bg-white text-gray-800 rounded-tl-none border border-gray-100'
-                                }`}>
-                                <p>{msg.content}</p>
-                                <p className={`text-[9px] mt-1 opacity-70 ${msg.sender.id === currentUserId ? 'text-right' : 'text-left'
+                            <div className="flex-shrink-0">
+                                <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600 text-xs shadow-sm overflow-hidden">
+                                     {msg.sender?.name ? msg.sender.name.charAt(0).toUpperCase() : 'U'}
+                                </div>
+                            </div>
+                            <div className={`flex flex-col max-w-[75%] ${msg.sender.id === currentUserId ? 'items-end' : 'items-start'}`}>
+                                <div className="flex items-baseline gap-2 mb-1 px-1">
+                                    <span className="text-xs font-semibold text-gray-700">
+                                        {msg.sender.id === currentUserId ? 'You' : (msg.sender?.name || 'User')}
+                                    </span>
+                                    <span className="text-[10px] text-gray-400">
+                                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </div>
+                                <div className={`p-3 rounded-2xl text-sm shadow-sm ${msg.sender.id === currentUserId
+                                    ? 'bg-gray-100 text-gray-800 rounded-tr-sm border border-gray-100'
+                                    : 'bg-white text-gray-800 rounded-tl-sm border border-gray-100'
                                     }`}>
-                                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </p>
+                                    <p className="whitespace-pre-wrap word-break break-words leading-relaxed">{msg.content}</p>
+                                </div>
                             </div>
                         </div>
                     ))
@@ -112,10 +124,10 @@ const Chat = ({ currentUserId, targetUser, jobId, onClose }) => {
                 />
                 <button
                     type="submit"
-                    className="h-9 w-9 bg-primary text-white rounded-full flex items-center justify-center hover:bg-primary-hover transition-colors shadow-sm disabled:opacity-50"
+                    className="h-10 w-10 bg-primary text-white rounded-md flex items-center justify-center hover:bg-primary-dark transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={!newMessage.trim()}
                 >
-                    <Send size={16} />
+                    <Send size={18} className="ml-1" />
                 </button>
             </form>
         </div>

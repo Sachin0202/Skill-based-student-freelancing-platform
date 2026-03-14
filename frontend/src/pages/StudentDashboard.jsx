@@ -118,7 +118,7 @@ const StudentDashboard = () => {
                                 <div>
                                     <h3 className="font-bold text-lg">{job.title}</h3>
                                     <p className="text-sm text-secondary mb-2">Budget: ${job.budget}</p>
-                                    <span className={`badge badge-${job.status.toLowerCase().replace('_', '-')}`}>
+                                    <span className={`badge badge-${job.status ? job.status.toLowerCase().replace('_', '-') : 'default'}`}>
                                         {job.status}
                                     </span>
                                 </div>

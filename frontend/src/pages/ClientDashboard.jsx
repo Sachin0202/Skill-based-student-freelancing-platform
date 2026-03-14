@@ -251,8 +251,8 @@ const ClientDashboard = () => {
                                             <div key={app.id} className="p-3 bg-white rounded border border-blue-100 shadow-sm">
                                                 <div className="flex justify-between items-start">
                                                     <div>
-                                                        <p className="font-bold text-sm">{app.student.name}</p>
-                                                        <p className="text-xs text-secondary mb-2">{app.student.email}</p>
+                                                        <p className="font-bold text-sm">{app.student?.name || 'Unknown Student'}</p>
+                                                        <p className="text-xs text-secondary mb-2">{app.student?.email || 'No email'}</p>
                                                         {app.student.skills && (
                                                             <div className="flex flex-wrap gap-1 mb-2">
                                                                 {app.student.skills.split(',').map((skill, i) => (
@@ -306,7 +306,7 @@ const ClientDashboard = () => {
                                 <div className="mt-4 pt-4 border-t border-gray-100">
                                     <div className="flex items-center gap-3">
                                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                                            {post.freelancer.name.charAt(0)}
+                                            {post.freelancer.name?.charAt(0) || 'U'}
                                         </div>
                                         <div>
                                             <p className="text-xs font-bold text-primary">Assigned to: {post.freelancer.name}</p>
