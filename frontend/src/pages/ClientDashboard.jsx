@@ -1,10 +1,12 @@
 import React from 'react';
 import DashboardLayout from '../layouts/DashboardLayout';
-import { LayoutDashboard, PlusCircle, List } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, List, FileText, MessageCircle, Star } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
+import Chat from '../components/Chat';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
 
 const ClientDashboard = () => {
     const { user } = useAuth();
@@ -17,6 +19,10 @@ const ClientDashboard = () => {
     const [activePostings, setActivePostings] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [submissions, setSubmissions] = React.useState({});
+    const [applications, setApplications] = React.useState({});
+    const [activeChat, setActiveChat] = React.useState(null);
+    const [reviewingJob, setReviewingJob] = React.useState(null);
+    const [reviewData, setReviewData] = React.useState({ rating: 5, comment: '' });
 
     // Load Razorpay Script
     React.useEffect(() => {
@@ -27,39 +33,56 @@ const ClientDashboard = () => {
         return () => document.body.removeChild(script);
     }, []);
 
-    const fetchData = React.useCallback(() => {
-        if (user && user.id) {
+    const fetchData = React.useCallback(async () => {
+        if (!user?.id) return;
+
+        try {
             setLoading(true);
-            fetch(`http://localhost:8080/api/jobs/client/${user.id}`)
-                .then(res => res.json())
-                .then(async (jobs) => {
-                    if (Array.isArray(jobs)) {
-                        setActivePostings(jobs);
-                        // Only fetch submissions for jobs that actually have them
-                        const submittedJobs = jobs.filter(j => j.status === 'SUBMITTED' || j.status === 'COMPLETED');
-                        const subMap = {};
-                        if (submittedJobs.length > 0) {
-                            await Promise.all(submittedJobs.map(async (job) => {
-                                try {
-                                    const subRes = await fetch(`http://localhost:8080/api/submissions/job/${job.id}`);
-                                    if (subRes.ok) {
-                                        const subData = await subRes.ok ? await subRes.json() : [];
-                                        subMap[job.id] = subData;
-                                    }
-                                } catch (e) {
-                                    console.error("Failed to fetch sub for job", job.id);
-                                }
-                            }));
-                        }
-                        setSubmissions(subMap);
-                    } else {
-                        setActivePostings([]);
+            const jobsRes = await fetch(`http://localhost:8080/api/jobs/client/${user.id}`);
+            const jobs = await jobsRes.json();
+
+            if (!Array.isArray(jobs)) {
+                setActivePostings([]);
+                setLoading(false);
+                return;
+            }
+
+            setActivePostings(jobs);
+
+            // Fetch Submissions and Applications in parallel
+            const subMap = {};
+            const appMap = {};
+
+            await Promise.all(jobs.map(async (job) => {
+                // Fetch Submissions for relevant jobs
+                if (job.status === 'SUBMITTED' || job.status === 'COMPLETED') {
+                    try {
+                        const subRes = await fetch(`http://localhost:8080/api/submissions/job/${job.id}`);
+                        if (subRes.ok) subMap[job.id] = await subRes.json();
+                    } catch (e) {
+                        console.error(`Sub fetch failed for job ${job.id}`, e);
                     }
-                })
-                .catch(err => console.error("Failed to fetch jobs", err))
-                .finally(() => setLoading(false));
+                }
+
+                // Fetch Applications for OPEN jobs
+                if (job.status === 'OPEN') {
+                    try {
+                        const appRes = await fetch(`http://localhost:8080/api/applications/job/${job.id}`);
+                        if (appRes.ok) appMap[job.id] = await appRes.json();
+                    } catch (e) {
+                        console.error(`App fetch failed for job ${job.id}`, e);
+                    }
+                }
+            }));
+
+            setSubmissions(subMap);
+            setApplications(appMap);
+        } catch (err) {
+            console.error("Dashboard data fetch failed", err);
+        } finally {
+            setLoading(false);
         }
-    }, [user]);
+    }, [user?.id]);
 
     React.useEffect(() => {
         fetchData();
@@ -132,6 +155,22 @@ const ClientDashboard = () => {
         }
     };
 
+    const handleHire = async (applicationId) => {
+        if (!window.confirm("Are you sure you want to hire this student?")) return;
+        try {
+            const res = await fetch(`http://localhost:8080/api/applications/hire/${applicationId}`, { method: 'POST' });
+            if (res.ok) {
+                alert("Student hired successfully!");
+                fetchData();
+            } else {
+                alert("Failed to hire student.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error hiring student.");
+        }
+    };
+
     if (loading) {
         return (
             <DashboardLayout sidebarTitle="Client" sidebarLinks={links}>
@@ -178,8 +217,77 @@ const ClientDashboard = () => {
                                     {post.status === 'COMPLETED' && (
                                         <Button variant="success" size="sm" onClick={() => handlePay(post)}>Pay Student</Button>
                                     )}
+                                    {post.freelancer && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setActiveChat({ target: post.freelancer, jobId: post.id })}
+                                            className="flex items-center gap-1"
+                                        >
+                                            <MessageCircle size={14} />
+                                            Message
+                                        </Button>
+                                    )}
+                                    {post.status === 'COMPLETED' && (
+                                        <Button
+                                            variant="primary"
+                                            size="sm"
+                                            onClick={() => setReviewingJob(post)}
+                                            className="flex items-center gap-1"
+                                        >
+                                            <Star size={14} />
+                                            Rate Student
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
+
+                            {/* Show Applications if status is OPEN */}
+                            {post.status === 'OPEN' && applications[post.id] && applications[post.id].length > 0 && (
+                                <div className="mt-4 p-4 bg-blue-50 rounded-md border border-blue-100">
+                                    <h4 className="text-sm font-bold mb-3 text-blue-800">Interested Students:</h4>
+                                    <div className="space-y-4">
+                                        {applications[post.id].map(app => (
+                                            <div key={app.id} className="p-3 bg-white rounded border border-blue-100 shadow-sm">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <p className="font-bold text-sm">{app.student.name}</p>
+                                                        <p className="text-xs text-secondary mb-2">{app.student.email}</p>
+                                                        {app.student.skills && (
+                                                            <div className="flex flex-wrap gap-1 mb-2">
+                                                                {app.student.skills.split(',').map((skill, i) => (
+                                                                    <span key={i} className="text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-600 border border-gray-200">
+                                                                        {skill.trim()}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                        {app.student.bio && (
+                                                            <p className="text-xs text-light italic line-clamp-2">"{app.student.bio}"</p>
+                                                        )}
+                                                        {app.student.resumeUrl && (
+                                                            <div className="mt-2">
+                                                                <a
+                                                                    href={`http://localhost:8080/uploads/${app.student.resumeUrl}`}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                                                                >
+                                                                    <FileText size={12} />
+                                                                    View Resume
+                                                                </a>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <Button variant="primary" size="sm" onClick={() => handleHire(app.id)}>
+                                                        Hire
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Show Submissions if any */}
                             {submissions[post.id] && submissions[post.id].length > 0 && (
@@ -195,10 +303,96 @@ const ClientDashboard = () => {
                             )}
 
                             {post.freelancer && (
-                                <p className="text-xs text-secondary mt-2">Freelancer: {post.freelancer.name} ({post.freelancer.email})</p>
+                                <div className="mt-4 pt-4 border-t border-gray-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                                            {post.freelancer.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-primary">Assigned to: {post.freelancer.name}</p>
+                                            <p className="text-[10px] text-secondary">{post.freelancer.email}</p>
+                                        </div>
+                                    </div>
+                                    {post.freelancer.skills && (
+                                        <div className="flex flex-wrap gap-1 mt-2">
+                                            {post.freelancer.skills.split(',').map((skill, i) => (
+                                                <span key={i} className="text-[9px] bg-primary/5 px-2 py-0.5 rounded text-primary/70">
+                                                    {skill.trim()}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </Card>
                     ))}
+                </div>
+            )}
+            {/* Chat Integration */}
+            {activeChat && (
+                <Chat
+                    currentUserId={user.id}
+                    targetUser={activeChat.target}
+                    jobId={activeChat.jobId}
+                    onClose={() => setActiveChat(null)}
+                />
+            )}
+
+            {/* Review Modal Simple */}
+            {reviewingJob && (
+                <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-[100]">
+                    <Card className="max-w-md w-full m-4">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold">Rate {reviewingJob.freelancer.name}</h3>
+                            <button onClick={() => setReviewingJob(null)}><X size={20} /></button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Rating</label>
+                                <div className="flex gap-2">
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                        <Star
+                                            key={star}
+                                            size={24}
+                                            className={`cursor-pointer ${star <= reviewData.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                                            onClick={() => setReviewData({ ...reviewData, rating: star })}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Comment</label>
+                                <textarea
+                                    className="w-full border rounded-md p-2 text-sm"
+                                    rows="3"
+                                    placeholder="Great work!"
+                                    value={reviewData.comment}
+                                    onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
+                                ></textarea>
+                            </div>
+                            <Button
+                                variant="primary"
+                                block
+                                onClick={async () => {
+                                    try {
+                                        await api.submitReview({
+                                            reviewer: { id: user.id },
+                                            reviewee: { id: reviewingJob.freelancer.id },
+                                            job: { id: reviewingJob.id },
+                                            rating: reviewData.rating,
+                                            comment: reviewData.comment
+                                        });
+                                        alert("Review submitted!");
+                                        setReviewingJob(null);
+                                    } catch (err) {
+                                        alert("Failed to submit review");
+                                    }
+                                }}
+                            >
+                                Submit Review
+                            </Button>
+                        </div>
+                    </Card>
                 </div>
             )}
         </DashboardLayout>

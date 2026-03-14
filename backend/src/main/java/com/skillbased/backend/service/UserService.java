@@ -28,4 +28,21 @@ public class UserService {
         }
         throw new RuntimeException("Invalid credentials");
     }
+
+    public User getUserById(Long id) {
+        return userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    public User updateProfile(Long id, User profileUpdates) {
+        User user = getUserById(id);
+        if (profileUpdates.getBio() != null)
+            user.setBio(profileUpdates.getBio());
+        if (profileUpdates.getSkills() != null)
+            user.setSkills(profileUpdates.getSkills());
+        if (profileUpdates.getName() != null)
+            user.setName(profileUpdates.getName());
+        if (profileUpdates.getResumeUrl() != null)
+            user.setResumeUrl(profileUpdates.getResumeUrl());
+        return userRepository.save(user);
+    }
 }

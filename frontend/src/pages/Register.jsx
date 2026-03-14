@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -8,11 +8,17 @@ import { api } from '../services/api';
 
 const Register = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Get role from query params if available
+    const queryParams = new URLSearchParams(location.search);
+    const initialRole = queryParams.get('role') || 'STUDENT';
+
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         password: '',
-        role: 'STUDENT'
+        role: initialRole
     });
 
     const handleChange = (e) => {

@@ -88,5 +88,39 @@ export const api = {
         });
         if (!response.ok) throw new Error('Payment verification failed');
         return response.json();
+    },
+
+    // Messaging
+    sendMessage: async (message) => {
+        const response = await fetch(`${BASE_URL}/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(message),
+        });
+        if (!response.ok) throw new Error('Failed to send message');
+        return response.json();
+    },
+
+    getChatHistory: async (u1, u2) => {
+        const response = await fetch(`${BASE_URL}/messages/history/${u1}/${u2}`);
+        if (!response.ok) throw new Error('Failed to fetch chat history');
+        return response.json();
+    },
+
+    // Reviews
+    submitReview: async (review) => {
+        const response = await fetch(`${BASE_URL}/reviews`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(review),
+        });
+        if (!response.ok) throw new Error('Failed to submit review');
+        return response.json();
+    },
+
+    getUserReviews: async (userId) => {
+        const response = await fetch(`${BASE_URL}/reviews/user/${userId}`);
+        if (!response.ok) throw new Error('Failed to fetch reviews');
+        return response.json();
     }
 };

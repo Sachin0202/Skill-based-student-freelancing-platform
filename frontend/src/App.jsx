@@ -9,6 +9,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import Payment from './pages/Payment';
 import SubmitWork from './pages/SubmitWork';
 import PostJob from './pages/PostJob';
+import Profile from './pages/Profile';
+import Messages from './pages/Messages';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -58,10 +60,20 @@ function App() {
             }
           />
 
+          <Route path="/messages" element={
+            <ProtectedRoute>
+              <Messages />
+            </ProtectedRoute>
+          } />
           <Route path="/payment" element={<Payment />} />
           <Route path="/submit-work/:jobId" element={
             <ProtectedRoute role="STUDENT">
               <SubmitWork />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           } />
         </Routes>
